@@ -1,0 +1,43 @@
+{% extends "voos/base.html" %}
+{% block titulo %}{% if object %}Editar rota{% else %}Nova rota{% endif %} · AirScan{% endblock %}
+{% block conteudo %}
+<h2>{% if object %}Editar {{ object.origem }} → {{ object.destino }}{% else %}Nova rota{% endif %}</h2>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="msg error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+  {% with f=form %}
+  <div class="grid">
+    {% include "voos/_campo.html" with campo=f.origem %}
+    {% include "voos/_campo.html" with campo=f.destino %}
+  </div>
+  <div class="grid">
+    {% include "voos/_campo.html" with campo=f.data_ida %}
+    {% include "voos/_campo.html" with campo=f.data_volta %}
+    {% include "voos/_campo.html" with campo=f.flex_dias %}
+  </div>
+  <div class="grid">
+    {% include "voos/_campo.html" with campo=f.adultos %}
+    {% include "voos/_campo.html" with campo=f.classe %}
+  </div>
+  <div class="grid">
+    {% include "voos/_campo.html" with campo=f.preco_alvo %}
+    {% include "voos/_campo.html" with campo=f.queda_percentual %}
+  </div>
+  <label>
+    {{ f.ativo }} Monitoramento ativo
+  </label>
+  {% endwith %}
+
+  <div class="acoes" style="margin-top:1.5rem">
+    <button type="submit">Salvar</button>
+    <a href="{% if object %}{% url 'voos:detalhe' object.pk %}{% else %}{% url 'voos:lista' %}{% endif %}" role="button" class="secondary outline">Cancelar</a>
+  </div>
+</form>
+
+<datalist id="aeroportos">
+  {% for codigo, nome in aeroportos %}<option value="{{ codigo }}">{{ nome }}</option>
+  {% endfor %}
+</datalist>
+{% endblock %}

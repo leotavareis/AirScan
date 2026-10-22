@@ -1,0 +1,116 @@
+{% extends "voos/base.html" %}
+{% load voos_extras %}
+{% block titulo %}{{ m.origem }} → {{ m.destino }} · AirScan{% endblock %}
+{% block conteudo %}
+<hgroup>
+  <h2>{{ m.origem }} → {{ m.destino }}{% if not m.ativo %} <small>(pausada)</small>{% endif %}</h2>
+  <p>
+    {{ m.data_ida|date:"d/m/Y" }}{% if m.data_volta %} ↔ {{ m.data_volta|date:"d/m/Y" }}{% else %} · só ida{% endif %}
+    {% if m.flex_dias %} · ±{{ m.flex_dias }} dia(s){% endif %}
+    · {{ m.adultos }} adulto(s) · {{ m.get_classe_display }}
+  </p>
+</hgroup>
+
+<div class="acoes" style="margin-bottom:1.5rem">
+  <form method="post" action="{% url 'voos:checar' m.pk %}" onsubmit="this.querySelector('button').setAttribute('aria-busy','true'); this.querySelector('button').textContent='Buscando…'">
+    {% csrf_token %}
+    <button type="submit" {% if m.flex_dias %}title="Com ±{{ m.flex_dias }} dia(s) são {{ m.flex_dias|add:m.flex_dias|add:1 }} buscas: pode levar 1 a 2 minutos"{% endif %}>Checar preço agora</button>
+  </form>
+  <a href="{% url 'voos:editar' m.pk %}" role="button" class="secondary outline">Editar</a>
+  <form method="post" action="{% url 'voos:alternar' m.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'voos:detalhe' m.pk %}">
+    <button type="submit" class="secondary outline">{% if m.ativo %}Pausar{% else %}Reativar{% endif %}</button>
+  </form>
+  <a href="{% url 'voos:excluir' m.pk %}" role="button" class="secondary outline">Excluir</a>
+</div>
+
+<div class="cartoes">
+  <article>
+    <div class="sub">Último preço</div>
+    <div class="valor preco {% if m.preco_alvo and ultimo_preco and ultimo_preco <= m.preco_alvo %}bom{% endif %}">{{ ultimo_preco|brl }}</div>
+  </article>
+  <article>
+    <div class="sub">Preço alvo</div>
+    <div class="valor preco">{{ m.preco_alvo|brl }}</div>
+  </article>
+  <article>
+    <div class="sub">Avisa se cair</div>
+    <div class="valor">{% if m.queda_percentual %}{{ m.queda_percentual }}%{% else %}—{% endif %}</div>
+  </article>
+</div>
+
+<article>
+  <header><strong>Histórico de preços</strong></header>
+  <div id="sem-dados" class="sub" hidden>Ainda não há consultas com preço. Clique em "Checar preço agora" ou espere a próxima checagem.</div>
+  <canvas id="grafico" height="110"></canvas>
+</article>
+
+{% if alertas %}
+<h4>Alertas enviados</h4>
+<ul>
+  {% for a in alertas %}
+  <li>{{ a.criado_em|date:"d/m H\hi" }} — {{ a.consulta.menor_preco|brl }}{% if not a.enviado %} <small>(falhou o envio)</small>{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h4>Últimas consultas</h4>
+{% if consultas %}
+<div class="tabela">
+<table>
+  <thead><tr><th>Quando</th><th>Preço</th><th>Voo</th><th>Datas</th><th>Fonte</th></tr></thead>
+  <tbody>
+  {% for c in consultas %}
+    <tr>
+      <td>{{ c.consultado_em|date:"d/m H\hi" }}</td>
+      {% if c.sucesso and c.menor_preco is None %}
+      <td colspan="4"><small class="sub">Nenhum voo encontrado para essas datas</small></td>
+      {% elif c.sucesso %}
+      <td class="preco">{{ c.menor_preco|brl }}</td>
+      <td>{{ c.companhia|default:"—" }}{% if c.escalas is not None %} · {% if c.escalas == 0 %}direto{% else %}{{ c.escalas }} escala(s){% endif %}{% endif %}</td>
+      <td>{{ c.data_ida|date:"d/m" }}{% if c.data_volta %} ↔ {{ c.data_volta|date:"d/m" }}{% endif %}</td>
+      <td>{{ c.provedor }}</td>
+      {% else %}
+      <td colspan="4"><small style="color:#c62828" title="{{ c.erro }}">Falhou em todos os provedores</small></td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="sub">Nenhuma consulta ainda.</p>
+{% endif %}
+
+{{ grafico|json_script:"dados-grafico" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const dados = JSON.parse(document.getElementById("dados-grafico").textContent);
+  if (!dados.precos.length) {
+    document.getElementById("sem-dados").hidden = false;
+    document.getElementById("grafico").hidden = true;
+  } else {
+    const estilo = getComputedStyle(document.body);
+    Chart.defaults.color = estilo.getPropertyValue("--pico-muted-color").trim() || "#888";
+    Chart.defaults.borderColor = estilo.getPropertyValue("--pico-muted-border-color").trim() || "#ccc";
+    const brl = v => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    const series = [{ label: "Menor preço", data: dados.precos, borderColor: "#1971c2", backgroundColor: "#1971c2", tension: .25, pointRadius: 3 }];
+    if (dados.alvo) {
+      series.push({ label: "Alvo", data: dados.precos.map(() => dados.alvo), borderColor: "#2f9e44", borderDash: [6, 4], pointRadius: 0 });
+    }
+    new Chart(document.getElementById("grafico"), {
+      type: "line",
+      data: { labels: dados.labels, datasets: series },
+      options: {
+        interaction: { mode: "index", intersect: false },
+        scales: { y: { ticks: { callback: brl } } },
+        plugins: { tooltip: { callbacks: { label: c => `${c.dataset.label}: ${brl(c.parsed.y)}` } } },
+      },
+    });
+  }
+</script>
+{% endblock %}

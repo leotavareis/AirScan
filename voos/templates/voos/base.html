@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}AirScan{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css">
+  <style>
+    :root { --pico-font-size: 100%; }
+    nav.topo { border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 1.5rem; }
+    nav.topo strong { font-size: 1.2rem; }
+    .msg { padding: .75rem 1rem; border-radius: var(--pico-border-radius); margin-bottom: 1rem; }
+    .msg.success { background: #e6f4ea; color: #1e6b34; }
+    .msg.error, .msg.warning { background: #fdecea; color: #8a1c13; }
+    @media (prefers-color-scheme: dark) {
+      .msg.success { background: #173d24; color: #b7e4c4; }
+      .msg.error, .msg.warning { background: #4a1914; color: #f6c1bb; }
+    }
+    .rota { font-weight: 700; font-size: 1.1rem; }
+    .sub { color: var(--pico-muted-color); font-size: .875rem; }
+    .preco { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bom { color: #1e8e3e; font-weight: 700; }
+    .pausada { opacity: .55; }
+    .acoes { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .acoes form { margin: 0; }
+    .acoes button, .acoes a[role=button] { margin: 0; padding: .4rem .8rem; font-size: .875rem; width: auto; }
+    .vazio { text-align: center; padding: 3rem 1rem; }
+    .cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .cartoes article { margin: 0; padding: 1rem; }
+    .cartoes .valor { font-size: 1.4rem; font-weight: 700; }
+    td, th { vertical-align: middle; }
+    .tabela { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <nav class="container topo">
+    <ul><li><a href="{% url 'voos:lista' %}" class="contrast"><strong>✈️ AirScan</strong></a></li></ul>
+    {% if user.is_authenticated %}
+    <ul>
+      <li><a href="{% url 'voos:criar' %}">+ Nova rota</a></li>
+      <li>
+        <form method="post" action="{% url 'logout' %}" style="margin:0">
+          {% csrf_token %}
+          <button type="submit" class="secondary outline" style="padding:.3rem .7rem;margin:0">Sair</button>
+        </form>
+      </li>
+    </ul>
+    {% endif %}
+  </nav>
+  <main class="container">
+    {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+    {% block conteudo %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

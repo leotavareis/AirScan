@@ -1,0 +1,13 @@
+{% extends "voos/base.html" %}
+{% block titulo %}Excluir rota · AirScan{% endblock %}
+{% block conteudo %}
+<article>
+  <header><strong>Excluir {{ m }}?</strong></header>
+  <p>O histórico de preços e os alertas dessa rota também serão apagados. Se quiser só parar de monitorar, use <em>Pausar</em>.</p>
+  <form method="post" class="acoes">
+    {% csrf_token %}
+    <button type="submit" style="background:#c62828;border-color:#c62828">Excluir</button>
+    <a href="{% url 'voos:detalhe' m.pk %}" role="button" class="secondary outline">Cancelar</a>
+  </form>
+</article>
+{% endblock %}

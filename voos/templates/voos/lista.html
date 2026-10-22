@@ -1,0 +1,73 @@
+{% extends "voos/base.html" %}
+{% load voos_extras %}
+{% block conteudo %}
+<hgroup>
+  <h2>Minhas rotas</h2>
+  <p>Checadas automaticamente às 7h, 13h e 20h. Os avisos chegam no Telegram.</p>
+</hgroup>
+
+{% if cota_serpapi %}
+  {% if cota_serpapi.no_limite %}
+  <div class="msg warning">
+    Reserva SerpApi pausada: restam {{ cota_serpapi.restantes }}{% if cota_serpapi.por_mes %} de {{ cota_serpapi.por_mes }}{% endif %} buscas
+    (limite de segurança: {{ reserva_minima }}). Volta sozinha quando a cota renovar.
+  </div>
+  {% else %}
+  <p class="sub">
+    Reserva SerpApi: {{ cota_serpapi.restantes }}{% if cota_serpapi.por_mes %} de {{ cota_serpapi.por_mes }}{% endif %} buscas restantes
+    · pausa automática ao chegar em {{ reserva_minima }}.
+  </p>
+  {% endif %}
+{% endif %}
+
+{% if monitoramentos %}
+<div class="tabela">
+<table>
+  <thead>
+    <tr>
+      <th>Rota</th>
+      <th>Último preço</th>
+      <th>Menor visto</th>
+      <th>Alvo</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for m in monitoramentos %}
+    <tr class="{% if not m.ativo %}pausada{% endif %}">
+      <td>
+        <a href="{% url 'voos:detalhe' m.pk %}" class="rota">{{ m.origem }} → {{ m.destino }}</a>
+        <div class="sub">
+          {{ m.data_ida|date:"d/m/Y" }}{% if m.data_volta %} ↔ {{ m.data_volta|date:"d/m/Y" }}{% else %} · só ida{% endif %}
+          {% if m.flex_dias %} · ±{{ m.flex_dias }}d{% endif %}
+          {% if not m.ativo %} · <strong>pausada</strong>{% endif %}
+        </div>
+      </td>
+      <td class="preco {% if m.preco_alvo and m.ultimo_preco and m.ultimo_preco <= m.preco_alvo %}bom{% endif %}">
+        {{ m.ultimo_preco|brl }}
+        {% if m.ultima_consulta %}<div class="sub">{{ m.ultima_consulta|date:"d/m H\hi" }}</div>{% endif %}
+      </td>
+      <td class="preco">{{ m.menor_visto|brl }}</td>
+      <td class="preco">{{ m.preco_alvo|brl }}</td>
+      <td>
+        <div class="acoes">
+          <a href="{% url 'voos:editar' m.pk %}" role="button" class="secondary outline">Editar</a>
+          <form method="post" action="{% url 'voos:alternar' m.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="secondary outline">{% if m.ativo %}Pausar{% else %}Reativar{% endif %}</button>
+          </form>
+          <a href="{% url 'voos:excluir' m.pk %}" role="button" class="secondary outline">Excluir</a>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<article class="vazio">
+  <p>Nenhuma rota cadastrada ainda.</p>
+  <a href="{% url 'voos:criar' %}" role="button">Cadastrar a primeira rota</a>
+</article>
+{% endif %}
+{% endblock %}
