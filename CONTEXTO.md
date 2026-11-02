@@ -19,9 +19,8 @@ Resumo da conversa de 21/10/2026 com o Claude Code. Para retomar, abra o projeto
 - **Alertas**: preço abaixo do alvo, queda de X% ou mínimo histórico; não repete sem nova queda.
   Aviso de falha no máximo 1x/dia.
 - **Testes**: 41 passando (`python manage.py test voos`).
-- **Agendamento no PC antigo (Windows)**: 3 tarefas "AirScan 07h/13h/20h" no Agendador,
-  rodando `checar_precos.bat`. Elas continuam rodando naquele PC enquanto ele estiver ligado;
-  apague-as quando o deploy na VM estiver funcionando (`schtasks /Delete /TN "AirScan 07h" /F` etc.).
+- **Agendamento no Windows**: removido em 02/11/2026 (tarefas "AirScan 07h/13h/20h" apagadas e
+  `checar_precos.bat` excluído). As checagens rodam só na VM.
 
 ## Observações importantes
 
@@ -82,7 +81,7 @@ por isso o certificado é `certbot certonly --webroot`, nunca `--nginx`.
 
 Falta: (a) registro DNS `airscan` propagar (modo avançado do Registro.br em transição) e rodar
 `bash deploy/enviar.sh` de novo para gerar o HTTPS; (b) criar o login com `createsuperuser` na VM;
-(c) recadastrar as rotas; (d) apagar as tarefas do PC antigo.
+(c) recadastrar as rotas. (Tarefas do Windows já apagadas em 02/11.)
 
 ### Pendências (histórico de 21/10)
 

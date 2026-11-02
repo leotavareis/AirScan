@@ -33,15 +33,7 @@ Quando restarem `SERPAPI_RESERVA_MINIMA` buscas (padrão 20), a SerpApi é pausa
 
 ## Agendamento (3x por dia)
 
-**Windows** (Agendador de Tarefas), em um terminal:
-
-```bat
-schtasks /Create /TN "AirScan 07h" /TR "C:\AirScan\checar_precos.bat" /SC DAILY /ST 07:05
-schtasks /Create /TN "AirScan 13h" /TR "C:\AirScan\checar_precos.bat" /SC DAILY /ST 13:10
-schtasks /Create /TN "AirScan 20h" /TR "C:\AirScan\checar_precos.bat" /SC DAILY /ST 20:15
-```
-
-O log fica em `logs\checar_precos.log`.
+As checagens rodam só na VM; o PC serve apenas para desenvolver e enviar o código.
 
 **VM da Oracle** (`airscan.tzurapp.com.br`): a pasta `deploy/` instala tudo isolado (usuário `airscan`,
 Gunicorn em `127.0.0.1:8010`, checagens nos horários definidos no site em `/horarios/` (até 3 por dia; padrão 07:05/13:10/20:15) via timer do systemd a cada 5 min, site próprio no nginx
