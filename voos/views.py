@@ -112,7 +112,10 @@ class MonitoramentoExcluir(LoginRequiredMixin, DeleteView):
 class MonitoramentoChecar(LoginRequiredMixin, View):
     def post(self, request, pk):
         m = get_object_or_404(Monitoramento, pk=pk)
-        resumo = coletor.executar([m])
+        kwargs = {}
+        if settings.AIRSCAN_RESUMO_CONSULTAS:
+            kwargs = {"enviar_resumo": coletor.enviar_resumo, "manual": True}
+        resumo = coletor.executar([m], **kwargs)
         if resumo["falhas"]:
             messages.error(request, "Nenhum provedor respondeu. Veja o erro no histórico.")
         elif m.consultas.first().menor_preco is None:
@@ -126,6 +129,8 @@ class MonitoramentoChecar(LoginRequiredMixin, View):
             texto = f"Menor preço agora: {coletor.formatar_preco(consulta.menor_preco, consulta.moeda)}"
             if resumo["alertas"]:
                 texto += " — alerta enviado no Telegram."
+            elif kwargs:
+                texto += " — resumo enviado no Telegram."
             messages.success(request, texto)
         return redirect("voos:detalhe", pk=pk)
 

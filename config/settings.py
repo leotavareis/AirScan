@@ -302,7 +302,7 @@ AIRSCAN_PAUSA_MIN = float(os.environ.get('AIRSCAN_PAUSA_MIN', '3'))
 
 AIRSCAN_PAUSA_MAX = float(os.environ.get('AIRSCAN_PAUSA_MAX', '8'))
 
-# Manda no Telegram, a cada checagem agendada, o preço de todas as rotas (sem som).
+# Manda no Telegram, a cada consulta (agendada ou "Checar preço agora"), o preço das rotas consultadas (sem som).
 AIRSCAN_RESUMO_CONSULTAS = os.environ.get('AIRSCAN_RESUMO_CONSULTAS', '1') == '1'
 
 

@@ -186,9 +186,10 @@ def linha_resumo(consulta: ConsultaPreco) -> str:
     return "\n".join(linhas)
 
 
-def mensagem_resumo(consultas: list[ConsultaPreco]) -> str:
+def mensagem_resumo(consultas: list[ConsultaPreco], manual: bool = False) -> str:
     agora = timezone.localtime()
-    cabecalho = f"📊 <b>AirScan — checagem das {agora:%H:%M}</b>"
+    tipo = "consulta manual" if manual else "checagem"
+    cabecalho = f"📊 <b>AirScan — {tipo} das {agora:%H:%M}</b>"
     return "\n\n".join([cabecalho, *(linha_resumo(c) for c in consultas)])
 
 
@@ -201,10 +202,13 @@ def desativar_vencidos() -> int:
     return Monitoramento.objects.filter(ativo=True, data_ida__lt=timezone.localdate()).update(ativo=False)
 
 
-def executar(monitoramentos=None, buscar=buscar_com_fallback, notificar=telegram.enviar, enviar_resumo=None) -> dict:
+def executar(
+    monitoramentos=None, buscar=buscar_com_fallback, notificar=telegram.enviar, enviar_resumo=None, manual=False
+) -> dict:
     """Roda todos os monitoramentos ativos: consulta, avalia e avisa.
 
-    Com `enviar_resumo`, manda também uma mensagem com o preço de cada rota ao final.
+    Com `enviar_resumo`, manda também uma mensagem com o preço de cada rota ao final
+    (`manual` só muda o título: "consulta manual" em vez de "checagem").
     """
     resumo = {"desativados": desativar_vencidos(), "consultas": 0, "falhas": 0, "alertas": 0}
     if monitoramentos is None:
@@ -230,7 +234,7 @@ def executar(monitoramentos=None, buscar=buscar_com_fallback, notificar=telegram
             resumo["alertas"] += 1
 
     if enviar_resumo and feitas:
-        enviar_resumo(mensagem_resumo(feitas))
+        enviar_resumo(mensagem_resumo(feitas, manual=manual))
 
     hoje = timezone.localdate()
     if resumo["falhas"]:

@@ -306,7 +306,7 @@ class ColetorTests(TestCase):
         self.assertIn("nenhum provedor respondeu", resumos[0])
 
     def test_sem_resumo_por_padrao(self):
-        # "Checar preço agora" no site chama executar() sem enviar_resumo.
+        # Sem enviar_resumo, executar() só manda os alertas.
         self.rodar(5000)
         self.assertEqual(self.enviadas, [])
 

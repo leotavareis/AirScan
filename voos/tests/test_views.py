@@ -91,7 +91,7 @@ class ViewsTests(TestCase):
         self.assertContains(r, "Falhou em todos os provedores")
 
     def test_checar_agora_sem_voos(self):
-        def executar(ms):
+        def executar(ms, **kwargs):
             ConsultaPreco.objects.create(monitoramento=ms[0], provedor="fast_flights")
             return {"consultas": 1, "falhas": 0, "alertas": 0, "desativados": 0}
 
@@ -101,7 +101,7 @@ class ViewsTests(TestCase):
         self.assertContains(r, "Nenhum voo encontrado para essas datas")
 
     def test_checar_agora(self):
-        def executar(ms):
+        def executar(ms, **kwargs):
             ConsultaPreco.objects.create(monitoramento=ms[0], menor_preco=Decimal(2999), provedor="fast_flights")
             return {"consultas": 1, "falhas": 0, "alertas": 1, "desativados": 0}
 
@@ -109,6 +109,34 @@ class ViewsTests(TestCase):
             r = self.client.post(reverse("voos:checar", args=[self.m.pk]), follow=True)
         self.assertContains(r, "R$ 2.999,00")
         self.assertContains(r, "alerta enviado")
+
+    def test_checar_agora_manda_resumo(self):
+        chamadas = []
+
+        def executar(ms, **kwargs):
+            chamadas.append(kwargs)
+            ConsultaPreco.objects.create(monitoramento=ms[0], menor_preco=Decimal(5000), provedor="fast_flights")
+            return {"consultas": 1, "falhas": 0, "alertas": 0, "desativados": 0}
+
+        with mock.patch("voos.views.coletor.executar", side_effect=executar):
+            r = self.client.post(reverse("voos:checar", args=[self.m.pk]), follow=True)
+        self.assertTrue(chamadas[0]["manual"])
+        self.assertIsNotNone(chamadas[0]["enviar_resumo"])
+        self.assertContains(r, "resumo enviado no Telegram")
+
+    @override_settings(AIRSCAN_RESUMO_CONSULTAS=False)
+    def test_checar_agora_sem_resumo_se_desligado(self):
+        chamadas = []
+
+        def executar(ms, **kwargs):
+            chamadas.append(kwargs)
+            ConsultaPreco.objects.create(monitoramento=ms[0], menor_preco=Decimal(5000), provedor="fast_flights")
+            return {"consultas": 1, "falhas": 0, "alertas": 0, "desativados": 0}
+
+        with mock.patch("voos.views.coletor.executar", side_effect=executar):
+            r = self.client.post(reverse("voos:checar", args=[self.m.pk]), follow=True)
+        self.assertEqual(chamadas, [{}])
+        self.assertNotContains(r, "resumo enviado")
 
     def test_lista_mostra_cota(self):
         with mock.patch("voos.views.serpapi.consultar_cota", return_value=serpapi.Cota(243, 250, 0)):
