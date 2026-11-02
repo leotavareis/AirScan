@@ -9,10 +9,10 @@ from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .aeroportos import AEROPORTOS
-from .forms import MonitoramentoForm
-from .models import ConsultaPreco, Monitoramento
+from .forms import AgendaForm, MonitoramentoForm
+from .models import Agenda, ConsultaPreco, Monitoramento
 from .providers import serpapi
-from .services import coletor
+from .services import agenda, coletor
 
 
 class MonitoramentoLista(LoginRequiredMixin, ListView):
@@ -37,6 +37,8 @@ class MonitoramentoLista(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["cota_serpapi"] = serpapi.consultar_cota()
         ctx["reserva_minima"] = settings.SERPAPI_RESERVA_MINIMA
+        ctx["agenda"] = Agenda.atual()
+        ctx["proxima_checagem"] = agenda.proximo_horario()
         return ctx
 
 
@@ -58,6 +60,20 @@ class MonitoramentoDetalhe(LoginRequiredMixin, DetailView):
             "alvo": float(self.object.preco_alvo) if self.object.preco_alvo else None,
         }
         return ctx
+
+
+class AgendaEditar(LoginRequiredMixin, UpdateView):
+    form_class = AgendaForm
+    template_name = "voos/agenda.html"
+    success_url = reverse_lazy("voos:lista")
+
+    def get_object(self, queryset=None):
+        return Agenda.atual()
+
+    def form_valid(self, form):
+        resposta = super().form_valid(form)
+        messages.success(self.request, f"Horários das checagens salvos: {self.object}.")
+        return resposta
 
 
 class MonitoramentoMixin(LoginRequiredMixin):

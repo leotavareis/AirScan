@@ -1,7 +1,24 @@
 from django import forms
 from django.utils import timezone
 
-from .models import Monitoramento
+from .models import Agenda, Monitoramento
+
+
+class AgendaForm(forms.ModelForm):
+    class Meta:
+        model = Agenda
+        fields = ["horario_1", "horario_2", "horario_3"]
+        widgets = {
+            campo: forms.TimeInput(attrs={"type": "time"}, format="%H:%M")
+            for campo in ["horario_1", "horario_2", "horario_3"]
+        }
+
+    def clean(self):
+        dados = super().clean()
+        horarios = [dados.get(c) for c in self.Meta.fields if dados.get(c)]
+        if len(set(horarios)) != len(horarios):
+            raise forms.ValidationError("Os horários precisam ser diferentes.")
+        return dados
 
 
 class MonitoramentoForm(forms.ModelForm):

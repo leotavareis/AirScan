@@ -6,6 +6,7 @@ app_name = "voos"
 
 urlpatterns = [
     path("", views.MonitoramentoLista.as_view(), name="lista"),
+    path("horarios/", views.AgendaEditar.as_view(), name="agenda"),
     path("rotas/nova/", views.MonitoramentoCriar.as_view(), name="criar"),
     path("rotas/<int:pk>/", views.MonitoramentoDetalhe.as_view(), name="detalhe"),
     path("rotas/<int:pk>/editar/", views.MonitoramentoEditar.as_view(), name="editar"),

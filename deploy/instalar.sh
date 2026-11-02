@@ -65,7 +65,7 @@ install -m 644 "$APP"/deploy/systemd/airscan.service "$APP"/deploy/systemd/airsc
 systemctl daemon-reload
 systemctl enable --quiet airscan.service airscan-checar.timer
 systemctl restart airscan.service
-systemctl start airscan-checar.timer
+systemctl restart airscan-checar.timer
 
 # Troca o site do nginx só se "nginx -t" aprovar; senão volta como estava e para.
 aplicar_nginx() {

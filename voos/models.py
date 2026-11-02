@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -73,6 +75,30 @@ class ConsultaPreco(models.Model):
         if not self.sucesso:
             return f"{self.monitoramento} — falhou"
         return f"{self.monitoramento} — {self.moeda} {self.menor_preco}"
+
+
+class Agenda(models.Model):
+    """Horários das checagens automáticas (horário de Brasília). Tabela de uma linha só."""
+
+    MAXIMO = 3  # limite das ferramentas de busca (cota da SerpApi)
+
+    horario_1 = models.TimeField("1º horário", default=time(7, 5))
+    horario_2 = models.TimeField("2º horário", null=True, blank=True, default=time(13, 10))
+    horario_3 = models.TimeField("3º horário", null=True, blank=True, default=time(20, 15))
+
+    class Meta:
+        verbose_name = "agenda das checagens"
+        verbose_name_plural = "agenda das checagens"
+
+    def __str__(self):
+        return ", ".join(f"{h:%H:%M}" for h in self.horarios())
+
+    @classmethod
+    def atual(cls) -> "Agenda":
+        return cls.objects.get_or_create(pk=1)[0]
+
+    def horarios(self) -> list[time]:
+        return sorted(h for h in (self.horario_1, self.horario_2, self.horario_3) if h is not None)
 
 
 class AvisoSistema(models.Model):

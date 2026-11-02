@@ -9,7 +9,8 @@ User=airscan
 Group=airscan
 WorkingDirectory=/home/airscan/AirScan
 Environment=PYTHONUTF8=1
-ExecStart=/home/airscan/AirScan/.venv/bin/python manage.py checar_precos
+# Só consulta quando chega um dos horários definidos em /horarios/ no site.
+ExecStart=/home/airscan/AirScan/.venv/bin/python manage.py checar_precos --agendado
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full

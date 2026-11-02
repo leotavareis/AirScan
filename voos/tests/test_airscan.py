@@ -258,6 +258,58 @@ class ColetorTests(TestCase):
         self.assertIn("15 de 250", avisos[0])
         self.assertTrue(AvisoSistema.objects.filter(chave__startswith="serpapi-cota-").exists())
 
+    def test_alerta_de_alvo_tem_destaque(self):
+        self.rodar(2800)
+        self.assertIn("PREÇO ALVO ATINGIDO", self.enviadas[0])
+        self.assertIn("R$ 200,00 abaixo", self.enviadas[0])
+
+    def test_alerta_sem_alvo_nao_tem_destaque(self):
+        self.rodar(5000)
+        self.rodar(4000)  # caiu 20%, mas continua acima do alvo
+        self.assertEqual(Alerta.objects.get().motivos, [regras.QUEDA_PERCENTUAL, regras.MINIMO_HISTORICO])
+        self.assertNotIn("PREÇO ALVO ATINGIDO", self.enviadas[0])
+
+    def rodar_com_resumo(self, *precos):
+        resumos = []
+
+        def buscar(busca):
+            return Resultado("fast_flights", [Oferta(D(p), "TAP", 0, "fast_flights") for p in precos])
+
+        coletor.executar(
+            buscar=buscar, notificar=self.notificar, enviar_resumo=lambda t: resumos.append(t) or True
+        )
+        return resumos
+
+    def test_resumo_sai_a_cada_checagem_mesmo_sem_alerta(self):
+        self.assertEqual(self.rodar_com_resumo(5000), [mock.ANY])
+        resumo = self.rodar_com_resumo(5100)[0]
+        self.assertEqual(self.enviadas, [])  # sem alerta: preço subiu e está acima do alvo
+        self.assertIn("checagem das", resumo)
+        self.assertIn("GRU → LIS", resumo)
+        self.assertIn("R$ 5.100,00", resumo)
+        self.assertIn("▲ R$ 100,00 (2,0%)", resumo)
+        self.assertIn("faltam R$ 2.100,00", resumo)
+        self.assertIn("menor já visto R$ 5.000,00", resumo)
+
+    def test_resumo_primeira_consulta_e_no_alvo(self):
+        resumo = self.rodar_com_resumo(2900)[0]
+        self.assertIn("primeira consulta", resumo)
+        self.assertIn("🎯 no alvo", resumo)
+
+    def test_resumo_mostra_falha(self):
+        resumos = []
+        coletor.executar(
+            buscar=lambda b: Resultado(None, [], {"fast_flights": "bloqueado"}),
+            notificar=self.notificar,
+            enviar_resumo=resumos.append,
+        )
+        self.assertIn("nenhum provedor respondeu", resumos[0])
+
+    def test_sem_resumo_por_padrao(self):
+        # "Checar preço agora" no site chama executar() sem enviar_resumo.
+        self.rodar(5000)
+        self.assertEqual(self.enviadas, [])
+
     def test_aviso_nao_marcado_se_telegram_falhar(self):
         self.assertFalse(coletor.avisar_uma_vez("x", "texto", lambda t: False))
         self.assertTrue(coletor.avisar_uma_vez("x", "texto", self.notificar))

@@ -1,0 +1,23 @@
+{% extends "voos/base.html" %}
+{% block titulo %}Horários · AirScan{% endblock %}
+{% block conteudo %}
+<h2>Horários das checagens</h2>
+<p class="sub">
+  Até 3 checagens por dia, no horário de Brasília. Deixe um campo vazio para checar menos vezes.
+  Cada checagem consulta todas as rotas ativas e manda o resumo no Telegram; pode atrasar até 5 minutos.
+</p>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="msg error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  <div class="grid">
+    {% include "voos/_campo.html" with campo=form.horario_1 %}
+    {% include "voos/_campo.html" with campo=form.horario_2 %}
+    {% include "voos/_campo.html" with campo=form.horario_3 %}
+  </div>
+  <div class="acoes" style="margin-top:1.5rem">
+    <button type="submit">Salvar</button>
+    <a href="{% url 'voos:lista' %}" role="button" class="secondary outline">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

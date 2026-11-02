@@ -75,7 +75,7 @@ tempo de execução curto e cron só 1x/dia no plano grátis.)
 ### Situação em 01/11/2026
 
 Instalado na VM com `bash deploy/enviar.sh` (banco começou do zero). App ativo em `127.0.0.1:8010`,
-timer das checagens ativo (07:05/13:10/20:15 Brasília), tokens copiados, Telegram testado, fast-flights
+checagens nos horários definidos no site em /horarios/ (timer a cada 5 min roda `checar_precos --agendado`), tokens copiados, Telegram testado, fast-flights
 funciona a partir do IP da Oracle. Diferenças do plano: timer do systemd em vez de crontab, estáticos em
 `/var/www/airscan/static`. A porta 443 pública é do **sslh** (repassa TLS para o nginx em `127.0.0.1:8443`),
 por isso o certificado é `certbot certonly --webroot`, nunca `--nginx`.

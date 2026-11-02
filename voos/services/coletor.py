@@ -124,32 +124,98 @@ def mensagem_alerta(alerta: Alerta) -> str:
     datas = f"{c.data_ida:%d/%m/%Y}" + (f" ↔ {c.data_volta:%d/%m/%Y}" if c.data_volta else " (só ida)")
     motivos = "; ".join(regras.DESCRICOES.get(x, x) for x in alerta.motivos)
     escalas = "direto" if c.escalas == 0 else f"{c.escalas} escala(s)"
-    linhas = [
+    linhas = []
+    if regras.ABAIXO_DO_ALVO in alerta.motivos:
+        linhas += ["🚨🎯 <b>PREÇO ALVO ATINGIDO!</b> 🎯🚨", ""]
+    linhas += [
         f"✈️ <b>{m.origem} → {m.destino}</b> por <b>{formatar_preco(c.menor_preco, c.moeda)}</b>",
         f"📅 {datas}",
         f"🛫 {escape(c.companhia or '?')} — {escalas}",
         f"📉 {motivos}",
     ]
     if m.preco_alvo:
-        linhas.append(f"🎯 alvo: {formatar_preco(m.preco_alvo, c.moeda)}")
+        if c.menor_preco <= m.preco_alvo:
+            folga = formatar_preco(m.preco_alvo - c.menor_preco, c.moeda)
+            linhas.append(f"🎯 alvo: {formatar_preco(m.preco_alvo, c.moeda)} — <b>{folga} abaixo</b>")
+        else:
+            linhas.append(f"🎯 alvo: {formatar_preco(m.preco_alvo, c.moeda)}")
     linhas.append(f'<a href="{link_google_voos(c)}">Ver no Google Voos</a>')
     return "\n".join(linhas)
+
+
+def linha_resumo(consulta: ConsultaPreco) -> str:
+    """Uma rota no resumo da checagem: preço atual, variação, alvo e mínimo."""
+    m = consulta.monitoramento
+    titulo = f"✈️ <b>{m.origem} → {m.destino}</b> {m.data_ida:%d/%m}" + (
+        f" ↔ {m.data_volta:%d/%m}" if m.data_volta else ""
+    )
+    if not consulta.sucesso:
+        return f"{titulo}\n⚠️ nenhum provedor respondeu"
+    if consulta.menor_preco is None:
+        return f"{titulo}\n— sem voos para essas datas"
+
+    preco = consulta.menor_preco
+    anteriores = m.consultas.filter(menor_preco__isnull=False).exclude(pk=consulta.pk)
+    ultima = anteriores.order_by("-consultado_em").first()
+    if ultima is None:
+        variacao = "primeira consulta"
+    elif preco == ultima.menor_preco:
+        variacao = "= igual à anterior"
+    else:
+        diff = preco - ultima.menor_preco
+        pct = f"{abs(diff) / ultima.menor_preco * 100:.1f}".replace(".", ",")
+        seta = "▼" if diff < 0 else "▲"
+        variacao = f"{seta} {formatar_preco(abs(diff), consulta.moeda)} ({pct}%)"
+
+    linhas = [titulo, f"<b>{formatar_preco(preco, consulta.moeda)}</b>  {variacao}"]
+    detalhes = []
+    if m.preco_alvo:
+        if preco <= m.preco_alvo:
+            detalhes.append(f"🎯 no alvo ({formatar_preco(m.preco_alvo, consulta.moeda)})")
+        else:
+            falta = formatar_preco(preco - m.preco_alvo, consulta.moeda)
+            detalhes.append(f"🎯 alvo {formatar_preco(m.preco_alvo, consulta.moeda)}, faltam {falta}")
+    minimo = anteriores.aggregate(v=Min("menor_preco"))["v"]
+    if minimo is not None:
+        if preco < minimo:
+            detalhes.append("⭐ menor já visto")
+        else:
+            detalhes.append(f"menor já visto {formatar_preco(minimo, consulta.moeda)}")
+    if detalhes:
+        linhas.append(" · ".join(detalhes))
+    return "\n".join(linhas)
+
+
+def mensagem_resumo(consultas: list[ConsultaPreco]) -> str:
+    agora = timezone.localtime()
+    cabecalho = f"📊 <b>AirScan — checagem das {agora:%H:%M}</b>"
+    return "\n\n".join([cabecalho, *(linha_resumo(c) for c in consultas)])
+
+
+def enviar_resumo(texto: str) -> bool:
+    """O resumo sai sem som; só os alertas tocam."""
+    return telegram.enviar(texto, silencioso=True)
 
 
 def desativar_vencidos() -> int:
     return Monitoramento.objects.filter(ativo=True, data_ida__lt=timezone.localdate()).update(ativo=False)
 
 
-def executar(monitoramentos=None, buscar=buscar_com_fallback, notificar=telegram.enviar) -> dict:
-    """Roda todos os monitoramentos ativos: consulta, avalia e avisa."""
+def executar(monitoramentos=None, buscar=buscar_com_fallback, notificar=telegram.enviar, enviar_resumo=None) -> dict:
+    """Roda todos os monitoramentos ativos: consulta, avalia e avisa.
+
+    Com `enviar_resumo`, manda também uma mensagem com o preço de cada rota ao final.
+    """
     resumo = {"desativados": desativar_vencidos(), "consultas": 0, "falhas": 0, "alertas": 0}
     if monitoramentos is None:
         monitoramentos = Monitoramento.objects.filter(ativo=True)
 
+    feitas = []
     for i, m in enumerate(monitoramentos):
         if i:
             _pausar()
         consulta = consultar(m, buscar=buscar)
+        feitas.append(consulta)
         resumo["consultas"] += 1
         if not consulta.sucesso:
             resumo["falhas"] += 1
@@ -162,6 +228,9 @@ def executar(monitoramentos=None, buscar=buscar_com_fallback, notificar=telegram
             alerta.enviado = notificar(mensagem_alerta(alerta))
             alerta.save(update_fields=["enviado"])
             resumo["alertas"] += 1
+
+    if enviar_resumo and feitas:
+        enviar_resumo(mensagem_resumo(feitas))
 
     hoje = timezone.localdate()
     if resumo["falhas"]:

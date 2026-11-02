@@ -3,7 +3,11 @@
 {% block conteudo %}
 <hgroup>
   <h2>Minhas rotas</h2>
-  <p>Checadas automaticamente às 7h, 13h e 20h. Os avisos chegam no Telegram.</p>
+  <p>
+    {% if agenda.horarios %}Checadas automaticamente às {{ agenda }}{% if proxima_checagem %} (próxima: {{ proxima_checagem|date:"H:i" }}){% endif %}.
+    {% else %}Checagens automáticas desligadas.{% endif %}
+    Os avisos chegam no Telegram. <a href="{% url 'voos:agenda' %}">Alterar horários</a>
+  </p>
 </hgroup>
 
 {% if cota_serpapi %}

@@ -26,8 +26,11 @@ def _chamar(metodo: str, **params) -> dict:
     return dados
 
 
-def enviar(texto: str) -> bool:
-    """Envia uma mensagem para o chat configurado. Devolve False se não deu."""
+def enviar(texto: str, silencioso: bool = False) -> bool:
+    """Envia uma mensagem para o chat configurado. Devolve False se não deu.
+
+    `silencioso` entrega sem som nem vibração (usado no resumo de cada checagem).
+    """
     if not settings.TELEGRAM_CHAT_ID:
         logger.error("TELEGRAM_CHAT_ID não configurado; mensagem não enviada:\n%s", texto)
         return False
@@ -38,6 +41,7 @@ def enviar(texto: str) -> bool:
             text=texto,
             parse_mode="HTML",
             disable_web_page_preview=True,
+            disable_notification=silencioso,
         )
     except TelegramErro as exc:
         logger.error("Falha ao enviar para o Telegram: %s", exc)

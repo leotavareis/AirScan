@@ -38,6 +38,7 @@
     {% if user.is_authenticated %}
     <ul>
       <li><a href="{% url 'voos:criar' %}">+ Nova rota</a></li>
+      <li><a href="{% url 'voos:agenda' %}">⏰ Horários</a></li>
       <li>
         <form method="post" action="{% url 'logout' %}" style="margin:0">
           {% csrf_token %}
