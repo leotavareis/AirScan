@@ -43,7 +43,12 @@ schtasks /Create /TN "AirScan 20h" /TR "C:\AirScan\checar_precos.bat" /SC DAILY 
 
 O log fica em `logs\checar_precos.log`.
 
-**Linux** (`crontab -e`):
+**VM da Oracle** (`airscan.tzurapp.com.br`): a pasta `deploy/` instala tudo isolado (usuário `airscan`,
+Gunicorn em `127.0.0.1:8010`, timer do systemd 07:05/13:10/20:15 no horário de Brasília, site próprio no nginx
+e certificado só para esse subdomínio). No Git Bash, `bash deploy/enviar.sh` instala ou atualiza;
+na VM, `sudo bash /home/airscan/AirScan/deploy/desinstalar.sh` remove tudo. Logs: `journalctl -u airscan -u airscan-checar`.
+
+**Outro Linux** (`crontab -e`):
 
 ```
 5 7,13,20 * * * cd /caminho/AirScan && .venv/bin/python manage.py checar_precos >> logs/checar_precos.log 2>&1

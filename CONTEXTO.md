@@ -72,7 +72,19 @@ tempo de execução curto e cron só 1x/dia no plano grátis.)
 | HTTPS | certbot só para `airscan.tzurapp.com.br` |
 | Remoção | script `deploy/desinstalar.sh` |
 
-### Pendências
+### Situação em 01/11/2026
+
+Instalado na VM com `bash deploy/enviar.sh` (banco começou do zero). App ativo em `127.0.0.1:8010`,
+timer das checagens ativo (07:05/13:10/20:15 Brasília), tokens copiados, Telegram testado, fast-flights
+funciona a partir do IP da Oracle. Diferenças do plano: timer do systemd em vez de crontab, estáticos em
+`/var/www/airscan/static`. A porta 443 pública é do **sslh** (repassa TLS para o nginx em `127.0.0.1:8443`),
+por isso o certificado é `certbot certonly --webroot`, nunca `--nginx`.
+
+Falta: (a) registro DNS `airscan` propagar (modo avançado do Registro.br em transição) e rodar
+`bash deploy/enviar.sh` de novo para gerar o HTTPS; (b) criar o login com `createsuperuser` na VM;
+(c) recadastrar as rotas; (d) apagar as tarefas do PC antigo.
+
+### Pendências (histórico de 21/10)
 
 1. **Você**: criar no Registro.br (Editar zona) o registro `A`, nome `airscan`, valor `147.15.49.224`.
 2. **Você**: mandar a saída deste comando rodado na VM:

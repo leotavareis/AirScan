@@ -1,0 +1,15 @@
+[Unit]
+Description=AirScan: checagem de preços
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=airscan
+Group=airscan
+WorkingDirectory=/home/airscan/AirScan
+Environment=PYTHONUTF8=1
+ExecStart=/home/airscan/AirScan/.venv/bin/python manage.py checar_precos
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full

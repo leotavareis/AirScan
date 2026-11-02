@@ -3,3 +3,4 @@ fast-flights==3.1.0
 python-dotenv==1.2.4
 requests==2.34.2
 typing_extensions==4.16.0
+gunicorn==23.0.0

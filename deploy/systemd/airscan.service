@@ -1,0 +1,20 @@
+[Unit]
+Description=AirScan (Gunicorn em 127.0.0.1:8010)
+After=network.target
+
+[Service]
+User=airscan
+Group=airscan
+WorkingDirectory=/home/airscan/AirScan
+Environment=PYTHONUTF8=1
+# Timeout longo: "Checar preço agora" faz as buscas dentro da requisição.
+ExecStart=/home/airscan/AirScan/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8010 --workers 2 --threads 4 --timeout 300 \
+    --access-logfile - --error-logfile -
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

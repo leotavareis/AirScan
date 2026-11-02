@@ -52,7 +52,7 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-only-troque-em-producao')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or 'django-insecure-dev-only-troque-em-producao'
 
 
 
@@ -63,6 +63,18 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
 
 ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h]
+
+# Endereços com https:// que podem enviar formulários (ex.: https://airscan.tzurapp.com.br).
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+
+if not DEBUG:
+    if SECRET_KEY.startswith('django-insecure'):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('Defina DJANGO_SECRET_KEY no .env antes de rodar com DJANGO_DEBUG=0.')
+    # Atrás do nginx: ele avisa pelo cabeçalho quando a conexão original era HTTPS.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 
@@ -244,7 +256,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT') or BASE_DIR / 'staticfiles'
 
 
 

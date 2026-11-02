@@ -1,0 +1,11 @@
+[Unit]
+Description=AirScan: checagem de preços 3x por dia (horário de Brasília)
+
+[Timer]
+OnCalendar=*-*-* 07:05:00 America/Sao_Paulo
+OnCalendar=*-*-* 13:10:00 America/Sao_Paulo
+OnCalendar=*-*-* 20:15:00 America/Sao_Paulo
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
